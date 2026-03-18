@@ -106,8 +106,8 @@ jobs:
                   kubelogin convert-kubeconfig \
                     -l azurecli \
                     --kubeconfig "${{ runner.temp }}/kubeconfig"
-              env:
-                  KUBECONFIG: ${{ runner.temp }}/kubeconfig
+
+                  echo "KUBECONFIG=${{ runner.temp }}/kubeconfig" >> $GITHUB_ENV
 
             # Deploys application based on given manifest file
             - name: Deploys application
