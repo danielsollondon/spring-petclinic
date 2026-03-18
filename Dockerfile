@@ -1,5 +1,5 @@
 # ---- Build Stage ----
-FROM eclipse-temurin:21.0.10-jdk-alpine AS builder
+FROM eclipse-temurin:21.0.10_7-jdk-alpine AS builder
 
 WORKDIR /workspace/app
 
@@ -19,7 +19,7 @@ RUN ./mvnw package -DskipTests -B --no-transfer-progress
 RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destination target/extracted
 
 # ---- Runtime Stage ----
-FROM eclipse-temurin:21.0.10-jre-alpine AS runtime
+FROM eclipse-temurin:21.0.10_7-jre-alpine AS runtime
 
 # Create a dedicated non-root user with explicit numeric UID/GID (required for runAsNonRoot)
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
