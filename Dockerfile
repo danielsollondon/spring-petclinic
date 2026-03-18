@@ -26,13 +26,15 @@ RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
 
 WORKDIR /app
 
-# Copy layered contents (ordered least-to-most volatile for optimal layer caching)
-# Use numeric UID:GID (1001:1001) — symbolic names in --chown trigger a BuildKit
-# "layer does not exist" export failure in some CI runners (GitHub Actions included).
-COPY --from=builder --chown=1001:1001 /workspace/app/target/extracted/dependencies/ ./
-COPY --from=builder --chown=1001:1001 /workspace/app/target/extracted/spring-boot-loader/ ./
-COPY --from=builder --chown=1001:1001 /workspace/app/target/extracted/snapshot-dependencies/ ./
-COPY --from=builder --chown=1001:1001 /workspace/app/target/extracted/application/ ./
+# Copy layered contents without --chown on cross-stage COPY.
+# --chown in COPY --from=builder creates orphaned intermediate layers in BuildKit
+# (both az acr build and docker buildx) which fail to export with
+# "layer does not exist". Ownership is set with a single RUN chown instead.
+COPY --from=builder /workspace/app/target/extracted/dependencies/ ./
+COPY --from=builder /workspace/app/target/extracted/spring-boot-loader/ ./
+COPY --from=builder /workspace/app/target/extracted/snapshot-dependencies/ ./
+COPY --from=builder /workspace/app/target/extracted/application/ ./
+RUN chown -R 1001:1001 /app
 
 USER appuser
 
