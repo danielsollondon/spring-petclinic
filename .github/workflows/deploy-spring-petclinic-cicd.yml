@@ -113,11 +113,15 @@ jobs:
               run: |
                 echo "KUBECONFIG=$KUBECONFIG"
                 kubectl config view
+                echo "----- Current Context -----"
                 kubectl config current-context
-                kubectl auth can-i get configmaps -n ${{ env.NAMESPACE }}
-                kubectl auth can-i create configmaps -n ${{ env.NAMESPACE }}
-                kubectl auth can-i update configmaps -n ${{ env.NAMESPACE }}
-                kubectl auth can-i delete configmaps -n ${{ env.NAMESPACE }}
+                echo "----- Config Map -----"
+                echo "----- get -----"
+                kubectl get configmaps -n spr-pclinic-mig
+                echo "----- create -----"
+                kubectl create configmap test-cm --from-literal=foo=bar -n spr-pclinic-mig
+                 echo "----- delete -----"
+                kubectl delete configmap test-cm -n spr-pclinic-mig
                 echo "----- Deployments -----"
                 kubectl auth can-i get deployments -n ${{ env.NAMESPACE }}
                 kubectl auth can-i create deployments -n ${{ env.NAMESPACE }}
