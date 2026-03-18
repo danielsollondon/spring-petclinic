@@ -21,16 +21,18 @@ RUN java -Djarmode=tools -jar target/*.jar extract --layers --launcher --destina
 # ---- Runtime Stage ----
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
-# Create a dedicated non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Create a dedicated non-root user with explicit numeric UID/GID (required for runAsNonRoot)
+RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
 
 WORKDIR /app
 
 # Copy layered contents (ordered least-to-most volatile for optimal layer caching)
-COPY --from=builder --chown=appuser:appgroup /workspace/app/target/extracted/dependencies/ ./
-COPY --from=builder --chown=appuser:appgroup /workspace/app/target/extracted/spring-boot-loader/ ./
-COPY --from=builder --chown=appuser:appgroup /workspace/app/target/extracted/snapshot-dependencies/ ./
-COPY --from=builder --chown=appuser:appgroup /workspace/app/target/extracted/application/ ./
+# Use numeric UID:GID (1001:1001) — symbolic names in --chown trigger a BuildKit
+# "layer does not exist" export failure in some CI runners (GitHub Actions included).
+COPY --from=builder --chown=1001:1001 /workspace/app/target/extracted/dependencies/ ./
+COPY --from=builder --chown=1001:1001 /workspace/app/target/extracted/spring-boot-loader/ ./
+COPY --from=builder --chown=1001:1001 /workspace/app/target/extracted/snapshot-dependencies/ ./
+COPY --from=builder --chown=1001:1001 /workspace/app/target/extracted/application/ ./
 
 USER appuser
 
