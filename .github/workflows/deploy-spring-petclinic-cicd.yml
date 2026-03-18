@@ -109,6 +109,15 @@ jobs:
 
                   echo "KUBECONFIG=${{ runner.temp }}/kubeconfig" >> $GITHUB_ENV
 
+            - name: Debug AKS auth
+              run: |
+                echo "KUBECONFIG=$KUBECONFIG"
+                kubectl config view
+                kubectl config current-context
+                kubectl get ns
+                kubectl auth can-i get configmaps -n ${{ env.NAMESPACE }}
+                kubectl auth can-i create configmaps -n ${{ env.NAMESPACE }}
+            
             # Deploys application based on given manifest file
             - name: Deploys application
               uses: Azure/k8s-deploy@v5
