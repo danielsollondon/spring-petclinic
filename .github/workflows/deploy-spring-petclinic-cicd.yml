@@ -114,9 +114,20 @@ jobs:
                 echo "KUBECONFIG=$KUBECONFIG"
                 kubectl config view
                 kubectl config current-context
-                kubectl get ns
                 kubectl auth can-i get configmaps -n ${{ env.NAMESPACE }}
                 kubectl auth can-i create configmaps -n ${{ env.NAMESPACE }}
+                kubectl auth can-i update configmaps -n ${{ env.NAMESPACE }}
+                kubectl auth can-i delete configmaps -n ${{ env.NAMESPACE }}
+                echo "----- Deployments -----"
+                kubectl auth can-i get deployments -n ${{ env.NAMESPACE }}
+                kubectl auth can-i create deployments -n ${{ env.NAMESPACE }}
+                kubectl auth can-i update deployments -n ${{ env.NAMESPACE }}
+                kubectl auth can-i delete deployments -n ${{ env.NAMESPACE }}
+                echo "----- Services -----"
+                kubectl auth can-i get services -n ${{ env.NAMESPACE }}
+                kubectl auth can-i create services -n ${{ env.NAMESPACE }}
+                kubectl auth can-i update services -n ${{ env.NAMESPACE }}
+                kubectl auth can-i delete services -n ${{ env.NAMESPACE }}
             
             # Deploys application based on given manifest file
             - name: Deploys application
