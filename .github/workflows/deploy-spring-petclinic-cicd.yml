@@ -107,6 +107,8 @@ jobs:
                     -l azurecli \
                     --kubeconfig "${{ runner.temp }}/kubeconfig"
 
+                  kubectl config set-context --current --namespace=${{ env.NAMESPACE }} --kubeconfig "${{ runner.temp }}/kubeconfig"
+
                   echo "KUBECONFIG=${{ runner.temp }}/kubeconfig" >> $GITHUB_ENV
 
             - name: Deep Debug Azure & AKS Auth
