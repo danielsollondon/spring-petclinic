@@ -132,15 +132,6 @@ jobs:
                 
                 echo "--- 5. K8s Auth Check (Can-I) ---"
                 # Testing 'create' specifically since that is where your log failed
-                kubectl auth can-i create configmaps -n ${{ env.NAMESPACE }} --verbose
-              
-
-            - name: Debug AKS auth
-              run: |
-                echo "KUBECONFIG=$KUBECONFIG"
-                kubectl config view
-                echo "----- Current Context -----"
-                kubectl config current-context
                 echo "----- Config Map -----"
                 echo "----- get -----"
                 kubectl get configmaps -n spr-pclinic-mig
@@ -158,7 +149,7 @@ jobs:
                 kubectl auth can-i create services -n ${{ env.NAMESPACE }}
                 kubectl auth can-i update services -n ${{ env.NAMESPACE }}
                 kubectl auth can-i delete services -n ${{ env.NAMESPACE }}
-            
+                          
             # Deploys application based on given manifest file
             - name: Deploys application
               uses: Azure/k8s-deploy@v5
