@@ -109,6 +109,30 @@ jobs:
 
                   echo "KUBECONFIG=${{ runner.temp }}/kubeconfig" >> $GITHUB_ENV
 
+            - name: Deep Debug Azure & AKS Auth
+              run: |
+                echo "--- 1. GitHub Action Identity (OIDC) ---"
+                # This shows the Service Principal ID being used by the login action
+                az ad signed-in-user show --query id -o tsv || echo "Could not retrieve ID"
+                
+                echo "--- 2. Active Azure Subscriptions ---"
+                az account show --query "{subscriptionId:id, tenantId:tenantId}"
+                
+                echo "--- 3. Check Azure RBAC Role Assignments ---"
+                # This checks if the SPID has 'Azure Kubernetes Service RBAC Writer' or similar
+                # We use the SPID from your error message directly to verify its permissions
+                SP_ID="50789a1a-3150-4f14-a921-62b8f8af7bf3"
+                az role assignment list --assignee $SP_ID --all --output table
+                
+                echo "--- 4. Verify Kubeconfig & Context ---"
+                kubectl config current-context
+                kubectl config view -o jsonpath='{.contexts[0].context.user}'
+                
+                echo "--- 5. K8s Auth Check (Can-I) ---"
+                # Testing 'create' specifically since that is where your log failed
+                kubectl auth can-i create configmaps -n ${{ env.NAMESPACE }} --verbose
+              
+
             - name: Debug AKS auth
               run: |
                 echo "KUBECONFIG=$KUBECONFIG"
