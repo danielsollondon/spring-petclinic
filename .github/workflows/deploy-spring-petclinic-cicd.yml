@@ -67,6 +67,7 @@ jobs:
             - name: Build and push image to ACR
               run: |
                   az acr build --image ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }} --registry ${{ env.AZURE_CONTAINER_REGISTRY }} -g ${{ env.ACR_RESOURCE_GROUP }} -f ${{ env.DOCKER_FILE }} ${{ env.BUILD_CONTEXT_PATH }}
+
     deploy:
         permissions:
             actions: read
@@ -107,49 +108,8 @@ jobs:
                     -l azurecli \
                     --kubeconfig "${{ runner.temp }}/kubeconfig"
 
-                  kubectl config set-context --current --namespace=${{ env.NAMESPACE }} --kubeconfig "${{ runner.temp }}/kubeconfig"
-
                   echo "KUBECONFIG=${{ runner.temp }}/kubeconfig" >> $GITHUB_ENV
 
-            - name: Deep Debug Azure & AKS Auth
-              run: |
-                echo "--- 1. GitHub Action Identity (OIDC) ---"
-                # This shows the Service Principal ID being used by the login action
-                az ad signed-in-user show --query id -o tsv || echo "Could not retrieve ID"
-                
-                echo "--- 2. Active Azure Subscriptions ---"
-                az account show --query "{subscriptionId:id, tenantId:tenantId}"
-                
-                echo "--- 3. Check Azure RBAC Role Assignments ---"
-                # This checks if the SPID has 'Azure Kubernetes Service RBAC Writer' or similar
-                # We use the SPID from your error message directly to verify its permissions
-                SP_ID="50789a1a-3150-4f14-a921-62b8f8af7bf3"
-                az role assignment list --assignee $SP_ID --all --output table
-                
-                echo "--- 4. Verify Kubeconfig & Context ---"
-                kubectl config current-context
-                kubectl config view -o jsonpath='{.contexts[0].context.user}'
-                
-                echo "--- 5. K8s Auth Check (Can-I) ---"
-                # Testing 'create' specifically since that is where your log failed
-                echo "----- Config Map -----"
-                echo "----- get -----"
-                kubectl get configmaps -n spr-pclinic-mig
-                echo "----- create -----"
-                kubectl create configmap test-cm --from-literal=foo=bar -n spr-pclinic-mig
-                 echo "----- delete -----"
-                kubectl delete configmap test-cm -n spr-pclinic-mig
-                echo "----- Deployments -----"
-                kubectl auth can-i get deployments -n ${{ env.NAMESPACE }}
-                kubectl auth can-i create deployments -n ${{ env.NAMESPACE }}
-                kubectl auth can-i update deployments -n ${{ env.NAMESPACE }}
-                kubectl auth can-i delete deployments -n ${{ env.NAMESPACE }}
-                echo "----- Services -----"
-                kubectl auth can-i get services -n ${{ env.NAMESPACE }}
-                kubectl auth can-i create services -n ${{ env.NAMESPACE }}
-                kubectl auth can-i update services -n ${{ env.NAMESPACE }}
-                kubectl auth can-i delete services -n ${{ env.NAMESPACE }}
-                          
             # Deploys application based on given manifest file
             - name: Deploys application
               uses: Azure/k8s-deploy@v5
