@@ -33,7 +33,7 @@ spec:
         - name: spring-petclinic
           # Replace <your-acr-name> with your Azure Container Registry name after pushing the image.
           # Example: myregistry.azurecr.io/spring-petclinic:v1
-          image: <your-acr-name>.azurecr.io/spring-petclinic:v1
+          image: bbashreg19959.azurecr.io/spring-petclinic:v1
           imagePullPolicy: Always
           ports:
             - name: http
