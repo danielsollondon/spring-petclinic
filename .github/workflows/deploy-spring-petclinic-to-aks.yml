@@ -18,7 +18,7 @@
 # 1. Use the AKS VS Code Extension "Setup OIDC for GitHub" command, OR
 # 2. Follow the manual setup guide: https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-azure
 #
-name: deploy-spring-petclinic-to-aks-0
+name: deploy-spring-petclinic-to-aks
 
 on:
     push:
@@ -35,9 +35,9 @@ env:
         k8s/configmap.yaml
         k8s/deployment.yaml
         k8s/service.yaml
-    DOCKER_FILE: Dockerfile
-    BUILD_CONTEXT_PATH: .
-    NAMESPACE: spr-pclinic-mig
+    DOCKER_FILE: .devcontainer/Dockerfile
+    BUILD_CONTEXT_PATH: .devcontainer
+    NAMESPACE: migration-2
 
 jobs:
     buildImage:
