@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-petclinic
+  namespace: my-dev-backend
+  labels:
+    app: spring-petclinic
+    app.kubernetes.io/name: spring-petclinic
+    app.kubernetes.io/version: "1.0"
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/managed-by: kubectl
+  annotations:
+    aks-project/deployed-by: pipeline
+    aks-project/pipeline-repo: danielsollondon/spring-petclinic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-petclinic
+  template:
+    metadata:
+      labels:
+        app: spring-petclinic
+        app.kubernetes.io/name: spring-petclinic
+        app.kubernetes.io/version: "1.0"
+    spec:
+      # ── Security ────────────────────────────────────────────────────────────
+      automountServiceAccountToken: false
+      securityContext:
+        # runAsNonRoot is false per project spec; the Dockerfile already sets
+        # USER 10001 so the container process does run as non-root in practice.
+        runAsNonRoot: false
+        seccompProfile:
+          type: RuntimeDefault
+
+      # ── Scheduling: anti-affinity + topology spread ──────────────────────
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: spring-petclinic
+                topologyKey: kubernetes.io/hostname
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: spring-petclinic
+
+      containers:
+        - name: spring-petclinic
+          # Image reference is replaced by the CI/CD pipeline at deploy time.
+          # The placeholder below is replaced by the workflow with the ACR image reference.
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+
+          # ── Resource limits ──────────────────────────────────────────────
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          # ── Security context ─────────────────────────────────────────────
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
+          # ── Environment ──────────────────────────────────────────────────
+          env:
+            - name: JAVA_OPTS
+              value: "-XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport"
+            - name: SERVER_PORT
+              value: "8080"
+
+          # ── Probes ───────────────────────────────────────────────────────
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 12   # allows up to 2 min for JVM warm-up
+            successThreshold: 1
+            timeoutSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 15
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 5
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3
+            successThreshold: 1
+            timeoutSeconds: 5
