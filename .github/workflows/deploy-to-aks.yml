@@ -1,0 +1,93 @@
+name: Deploy spring-petclinic to AKS
+
+# Triggered manually only — deployments are always explicit
+on:
+  workflow_dispatch:
+    inputs:
+      cluster-name:
+        description: "AKS cluster name"
+        required: true
+        default: "clu-10849"
+      resource-group:
+        description: "Azure resource group"
+        required: true
+        default: "dansol19959"
+      namespace:
+        description: "Kubernetes namespace"
+        required: true
+        default: "my-dev-backend"
+
+permissions:
+  id-token: write   # required for OIDC login
+  contents: read
+
+jobs:
+  build-and-deploy:
+    name: Build image & deploy to AKS
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Azure login (OIDC – no long-lived secrets) ───────────────────────
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ── Build & push image via ACR Tasks (no local Docker daemon needed) ──
+      - name: Build and push image with ACR Tasks
+        run: |
+          az acr build \
+            --registry ${{ secrets.AZURE_ACR_NAME }} \
+            --image spring-petclinic:${{ github.sha }} \
+            .
+
+      # ── Set AKS context ──────────────────────────────────────────────────
+      - name: Set AKS context
+        uses: azure/aks-set-context@v4
+        with:
+          cluster-name: ${{ inputs.cluster-name }}
+          resource-group: ${{ inputs.resource-group }}
+
+      # ── Install kubelogin (required for AAD-enabled AKS clusters) ────────
+      - name: Install kubelogin
+        uses: azure/use-kubelogin@v1
+        with:
+          skip-cache: "true"
+
+      # ── Convert kubeconfig to use kubelogin workload identity ─────────────
+      - name: Convert kubeconfig for kubelogin
+        run: kubelogin convert-kubeconfig -l workloadidentity
+
+      # ── Update image reference in manifests ──────────────────────────────
+      - name: Update image reference in deployment manifest
+        run: |
+          sed -i "s|bbashreg19959.azurecr.io/spring-petclinic:latest|bbashreg19959.azurecr.io/spring-petclinic:${{ github.sha }}|g" \
+            deploy/kubernetes/deployment.yaml
+
+      # ── Apply Kubernetes manifests ────────────────────────────────────────
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f deploy/kubernetes/ -n ${{ inputs.namespace }}
+
+      # ── Annotate deployment with run metadata ────────────────────────────
+      - name: Annotate deployment with pipeline metadata
+        run: |
+          kubectl annotate deployment --all \
+            -n ${{ inputs.namespace }} \
+            aks-project/pipeline-run-url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \
+            "aks-project/pipeline-workflow=${{ github.workflow }}" \
+            --overwrite
+
+      # ── Wait for rollout ─────────────────────────────────────────────────
+      - name: Wait for deployment rollout
+        run: |
+          kubectl rollout status deployment/spring-petclinic \
+            -n ${{ inputs.namespace }} \
+            --timeout=5m

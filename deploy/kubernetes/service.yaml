@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-petclinic
+  namespace: my-dev-backend
+  labels:
+    app: spring-petclinic
+    app.kubernetes.io/name: spring-petclinic
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/managed-by: kubectl
+  annotations:
+    aks-project/deployed-by: pipeline
+    aks-project/pipeline-repo: danielsollondon/spring-petclinic
+spec:
+  type: ClusterIP
+  selector:
+    app: spring-petclinic
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080
