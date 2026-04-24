@@ -47,3 +47,4 @@ _site/
 *.css
 !petclinic.css
 .mkcert-ca.crt
+artifacts/
