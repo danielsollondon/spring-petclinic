@@ -68,7 +68,7 @@ jobs:
       # ── Update image reference in manifests ──────────────────────────────
       - name: Update image reference in deployment manifest
         run: |
-          sed -i "s|bbashreg19959.azurecr.io/spring-petclinic:latest|bbashreg19959.azurecr.io/spring-petclinic:${{ github.sha }}|g" \
+          sed -i "s|IMAGE_PLACEHOLDER|${{ secrets.AZURE_ACR_NAME }}.azurecr.io/spring-petclinic:${{ github.sha }}|g" \
             deploy/kubernetes/deployment.yaml
 
       # ── Apply Kubernetes manifests ────────────────────────────────────────

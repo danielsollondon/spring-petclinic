@@ -54,9 +54,9 @@ spec:
 
       containers:
         - name: spring-petclinic
-          # Image is updated by the CI/CD pipeline at deploy time.
+          # Image reference is replaced by the CI/CD pipeline at deploy time.
           # The placeholder below is replaced by the workflow with the ACR image reference.
-          image: bbashreg19959.azurecr.io/spring-petclinic:latest
+          image: IMAGE_PLACEHOLDER
           imagePullPolicy: Always
           ports:
             - name: http
