@@ -27,6 +27,8 @@ spec:
       # ── Security ────────────────────────────────────────────────────────────
       automountServiceAccountToken: false
       securityContext:
+        # runAsNonRoot is false per project spec; the Dockerfile already sets
+        # USER 10001 so the container process does run as non-root in practice.
         runAsNonRoot: false
         seccompProfile:
           type: RuntimeDefault

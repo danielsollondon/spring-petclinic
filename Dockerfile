@@ -34,8 +34,12 @@ ENV JAVA_OPTS=""
 
 WORKDIR /app
 
-# Create a non-root system user (UID 10001, primary group root for OpenShift compat)
-RUN useradd -r -u 10001 -g root appuser
+# Install curl (needed for HEALTHCHECK) and create a non-root system user
+# (UID 10001, primary group root for OpenShift compatibility)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd -r -u 10001 -g root appuser
 
 # Copy the fat JAR and set ownership in one layer
 COPY --from=build --chown=10001:0 /workspace/target/*.jar /app/app.jar
