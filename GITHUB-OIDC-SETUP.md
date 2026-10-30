@@ -25,6 +25,42 @@ Follow the [official GitHub guide](https://docs.github.com/en/actions/deployment
 
 Your workflow **will fail** with authentication errors when trying to connect to Azure. The workflow uses `azure/login@v2` which requires these credentials.
 
+### Troubleshooting: `AADSTS90002: Tenant not found`
+
+The `buildImage` job in run `40987249534` failed during Azure login with
+`invalid_tenant` / `AADSTS90002`, before the container build started. Azure could
+not discover the tenant supplied by the `AZURE_TENANT_ID` Actions secret. This
+does not establish a problem with the managed identity's client ID, federated
+credential, or permissions: those checks occur after tenant discovery.
+
+1. In a trusted Azure CLI session, sign in to the intended Azure cloud and tenant,
+   then inspect the target subscription:
+   ```bash
+   az account show --subscription "<target-subscription-id>" \
+     --query '{tenantId:tenantId, subscriptionId:id}' --output json
+   ```
+2. In GitHub **Settings → Secrets and variables → Actions**, update the repository
+   secret `AZURE_TENANT_ID` to the returned `tenantId` (not the subscription ID,
+   client ID, or managed identity resource ID). Paste only the value, without
+   quotes or whitespace. Confirm `AZURE_SUBSCRIPTION_ID` matches the target
+   subscription and `AZURE_CLIENT_ID` is the client ID of the identity in that tenant.
+   If organization secrets are used instead, have their administrator correct
+   them and check for repository secrets that override them.
+3. This workflow uses the default public Azure cloud (`azurecloud`). If the
+   subscription belongs to a sovereign cloud, configure the matching
+   `environment` and OIDC `audience` on **both** Azure login steps as described in
+   the [Azure login documentation](https://github.com/Azure/login#environment).
+4. Re-run the failed workflow after correcting the configuration. Both
+   `buildImage` and `deploy` use the same three Actions secrets.
+
+OIDC login supports a user-assigned managed identity without a client secret.
+Do not switch to `auth-type: IDENTITY` for this GitHub-hosted runner; that mode
+requires an Azure-hosted self-hosted runner with an assigned managed identity.
+If login subsequently reports a federated credential mismatch, verify the
+identity trusts issuer `https://token.actions.githubusercontent.com`, subject
+`repo:danielsollondon/spring-petclinic:ref:refs/heads/main`, and audience
+`api://AzureADTokenExchange` for the current public-cloud configuration.
+
 ## ✅ After OIDC Setup
 
 Once configured, your workflow will:
